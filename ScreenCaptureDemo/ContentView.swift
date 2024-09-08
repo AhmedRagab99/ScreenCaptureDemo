@@ -30,43 +30,7 @@ enum CaptureType {
 }
 
 
-import SwiftUI
 
-struct CapturePreview: NSViewRepresentable {
-    
-    // A layer that renders the video contents.
-    private let contentLayer = CALayer()
-    
-    init() {
-        contentLayer.contentsGravity = .resizeAspect
-    }
-    
-    func makeNSView(context: Context) -> CaptureVideoPreview {
-        CaptureVideoPreview(layer: contentLayer)
-    }
-    
-    // Called by ScreenRecorder as it receives new video frames.
-    func updateFrame(_ frame: CapturedFrame) {
-        contentLayer.contents = frame.surface
-    }
-    
-    // The view isn't updatable. Updates to the layer's content are done in outputFrame(frame:).
-    func updateNSView(_ nsView: CaptureVideoPreview, context: Context) {}
-    
-    class CaptureVideoPreview: NSView {
-        // Create the preview with the video layer as the backing layer.
-        init(layer: CALayer) {
-            super.init(frame: .zero)
-            // Make this a layer-hosting view. First set the layer, then set wantsLayer to true.
-            self.layer = layer
-            wantsLayer = true
-        }
-        
-        required init?(coder: NSCoder) {
-            fatalError("init(coder:) has not been implemented")
-        }
-    }
-}
 
 extension SCWindow {
     var displayName: String {
@@ -170,47 +134,27 @@ final class CaptureStreamOutputEngine: NSObject,SCStreamOutput,SCStreamDelegate 
 }
 struct ContentView: View {
     @StateObject var screenRecorder = ScreenCaptureManger()
+    @State var userStopped = false
+    @State var disableInput = false
     @State var isUnauthorized = false
-    
     var body: some View {
-        VStack {
+        HSplitView {
+            ConfigurationView(screenRecorder: screenRecorder, userStopped: $userStopped)
+                .frame(minWidth: 280, maxWidth: 280)
+                .disabled(disableInput)
             screenRecorder.capturePreview
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .aspectRatio(screenRecorder.contentSize, contentMode: .fit)
                 .padding(8)
-            
-            VStack(alignment: .leading, spacing: 20) {
-                Text("Capture Type")
-                Picker("Capture", selection: $screenRecorder.captureType) {
-                    Text("Display")
-                        .tag(CaptureType.display)
-                    Text("Window")
-                        .tag(CaptureType.window)
-                }
-            }
-            
-            VStack(alignment: .leading, spacing: 20) {
-                Text("Screen Content")
-                switch screenRecorder.captureType {
-                case .display:
-                    Picker("Display", selection: $screenRecorder.selectedDisplay) {
-                        ForEach(screenRecorder.availableDisplays, id: \.self) { display in
-                            Text(display.displayName)
-                                .tag(SCDisplay?.some(display))
-                        }
-                    }
-                    
-                case .window:
-                    Picker("Window", selection: $screenRecorder.selectedWindow) {
-                        ForEach(screenRecorder.availableWindows, id: \.self) { window in
-                            Text(window.displayName)
-                                .tag(SCWindow?.some(window))
-                        }
+                .overlay {
+                    if userStopped {
+                        Image(systemName: "nosign")
+                            .font(.system(size: 250, weight: .bold))
+                            .foregroundColor(Color(white: 0.3, opacity: 1.0))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(Color(white: 0.0, opacity: 0.5))
                     }
                 }
-            }
-            
-           
         }
         .overlay {
             if isUnauthorized {
@@ -231,15 +175,7 @@ struct ContentView: View {
             }
         }
         .navigationTitle("Screen Capture Sample")
-        .onAppear {
-            Task {
-                if await screenRecorder.canRecord {
-                    await screenRecorder.start()
-                } else {
-                    isUnauthorized = true
-                }
-            }
-        }
+        
     }
 }
 

@@ -10,7 +10,7 @@ import Combine
 import ScreenCaptureKit
 import AVKit
 @MainActor
-final class ScreenCaptureManger:  ObservableObject {
+final class ScreenCaptureManger:  NSObject, ObservableObject,SCContentSharingPickerObserver {
     @Published var availableWindows = [SCWindow]()
     @Published var availableApps:[SCRunningApplication] = []
     @Published var isAppExecluded: Bool = true {
@@ -32,6 +32,119 @@ final class ScreenCaptureManger:  ObservableObject {
 
     @Published var isAudioCaptureEnabled: Bool = false
     @Published var isMicCaptureEnaled: Bool = false
+    
+    //MARK: picker variables
+    private let screenRecorderPicker = SCContentSharingPicker.shared
+    
+    @Published var maximumStramCount = Int() {
+        didSet {
+            updatePickerConfiguration()
+        }
+    }
+    
+    @Published var excludedWindowIDsSelection = Set<Int>() {
+        didSet {
+            updatePickerConfiguration()
+        }
+    }
+    
+    @Published var allowsRepickign: Bool  = true {
+        didSet {
+            updatePickerConfiguration()
+        }
+    }
+    
+    @Published var allowedPickingModes = SCContentSharingPickerMode() {
+        didSet {
+            updatePickerConfiguration()
+        }
+    }
+    
+    @Published var excludedBundleIDs = [String]() {
+        didSet {
+            updatePickerConfiguration()
+        }
+    }
+    @Published private(set) var pickerUpdate: Bool = false // Update the running stream immediately with picker selection
+    private var pickerContentFilter: SCContentFilter?
+    private var shouldUsePickerFilter = false
+    
+    @Published var isPickerActive = false {
+        didSet {
+            if isPickerActive {
+                print("Picker is active")
+                initPickerConfiguration()
+                self.screenRecorderPicker.isActive = true
+                self.screenRecorderPicker.add(self)
+            } else {
+                print("Picker is active")
+                self.screenRecorderPicker.isActive = false
+                self.screenRecorderPicker.remove(self)
+            }
+        }
+    }
+    
+    func initPickerConfiguration() {
+        var pickerConfig = SCContentSharingPickerConfiguration()
+        pickerConfig.allowedPickerModes = [
+            .singleWindow,
+            .multipleWindows,
+            .singleApplication,
+            .multipleApplications,
+            .singleDisplay,            
+        ]
+        
+        self.allowedPickingModes = pickerConfig.allowedPickerModes
+    }
+    
+    
+    func updatePickerConfiguration() {
+        self.screenRecorderPicker.maximumStreamCount = maximumStramCount
+        self.screenRecorderPicker.defaultConfiguration = getDefaultPickerConfig()
+    }
+    
+    func getDefaultPickerConfig() -> SCContentSharingPickerConfiguration {
+        var config = SCContentSharingPickerConfiguration()
+        config.allowedPickerModes = allowedPickingModes
+        config.excludedWindowIDs = Array(excludedWindowIDsSelection)
+        config.excludedBundleIDs = excludedBundleIDs
+        config.allowsChangingSelectedContent = allowsRepickign
+        return config
+    }
+    
+    /// - Tag: HandlePicker
+    nonisolated func contentSharingPicker(_ picker: SCContentSharingPicker, didCancelFor stream: SCStream?) {
+            print("Picker canceled for stream \(stream)")
+    }
+
+    nonisolated func contentSharingPicker(_ picker: SCContentSharingPicker, didUpdateWith filter: SCContentFilter, for stream: SCStream?) {
+        Task { @MainActor in
+            print("Picker updated with filter=\(filter) for stream=\(stream)")
+            pickerContentFilter = filter
+            shouldUsePickerFilter = true
+            setPickerUpdate(true)
+            updateEngine()
+        }
+    }
+    
+    func presentPicker() {
+        if let stream = stream {
+            SCContentSharingPicker.shared.present(for: stream)
+        } else {
+            SCContentSharingPicker.shared.present()
+        }
+    }
+
+    nonisolated func contentSharingPickerStartDidFailWithError(_ error: Error) {
+        print("Error starting picker! \(error)")
+    }
+    
+    func setPickerUpdate(_ updated: Bool) {
+        Task { @MainActor in
+            self.pickerUpdate = updated
+            
+        }
+    }
     
     private let videoSampleBufferQueue = DispatchQueue(label: "com.example.apple-samplecode.VideoSampleBufferQueue")
     private let audioSampleBufferQueue = DispatchQueue(label: "com.example.apple-samplecode.AudioSampleBufferQueue")
@@ -67,33 +180,38 @@ final class ScreenCaptureManger:  ObservableObject {
     
     private func updateEngine() {
         guard isRunning else { return }
-        Task {
-            let filter = getContentFilter()
+        Task {            
             await update(configuration: getStreamConfiguration(), filter: getContentFilter())
-//            setPickerUpdate(false)
+            setPickerUpdate(false)
         }
     }
     func start()  async {
         // Exit early if already running.
-        guard !isRunning else { return }
+        guard !isRunning || !isPickerActive else { return }
         
-        await self.startCaptureContent()
+        await self.refreshAvailableContent()
         Timer.publish(every: 3, on: .main, in: .common).autoconnect().sink { [weak self] _ in
             guard let self = self else { return }
             Task {
-                await self.startCaptureContent()
+                await self.refreshAvailableContent()
             }
         }
         .store(in: &subscriptions)
     }
     
-    func startCaptureContent() async {
+    func refreshAvailableContent() async {
         do {
             
             let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+            
             availableDisplays = content.displays
-            availableWindows = content.windows
             availableApps = content.applications
+            
+            let windows = filterWindows(content.windows)
+            if windows != availableWindows {
+                availableWindows = windows
+            }
+            
             
             if selectedDisplay == nil {
                 selectedDisplay = availableDisplays.first
@@ -160,8 +278,10 @@ final class ScreenCaptureManger:  ObservableObject {
         do {
             try await stream?.stopCapture()
             streamOutput?.getContinuation()?.finish()
+            isRunning = false
         } catch {
             streamOutput?.getContinuation()?.finish(throwing: error)
+            isRunning = false
         }
 //        powerMeter.processSilence()
     }
@@ -189,6 +309,12 @@ final class ScreenCaptureManger:  ObservableObject {
             
             // Create a content filter that includes a single window.
             filter = SCContentFilter(desktopIndependentWindow: window)
+        }
+        // Use filter from content picker, if active.
+        if shouldUsePickerFilter {
+            guard let pickerFilter = pickerContentFilter else { return filter }
+            filter = pickerFilter
+            shouldUsePickerFilter = false
         }
         return filter
     }
