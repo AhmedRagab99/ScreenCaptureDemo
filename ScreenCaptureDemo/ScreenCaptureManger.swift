@@ -168,6 +168,7 @@ extension ScreenCaptureManger {
             availableApps = content.applications
             
             let windows = filterWindows(content.windows)
+            
             if windows != availableWindows {
                 availableWindows = windows
             }
@@ -339,7 +340,10 @@ extension ScreenCaptureManger {
     
     /// - Tag: HandlePicker
     nonisolated func contentSharingPicker(_ picker: SCContentSharingPicker, didCancelFor stream: SCStream?) {
-            print("Picker canceled for stream \(stream)")
+        print("Picker canceled for stream \(stream)")
+        Task { @MainActor in
+            await stopCapture()
+        }
     }
 
     nonisolated func contentSharingPicker(_ picker: SCContentSharingPicker, didUpdateWith filter: SCContentFilter, for stream: SCStream?) {
