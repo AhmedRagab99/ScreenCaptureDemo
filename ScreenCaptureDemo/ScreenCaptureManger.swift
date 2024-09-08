@@ -84,68 +84,6 @@ final class ScreenCaptureManger:  NSObject, ObservableObject,SCContentSharingPic
         }
     }
     
-    func initPickerConfiguration() {
-        var pickerConfig = SCContentSharingPickerConfiguration()
-        pickerConfig.allowedPickerModes = [
-            .singleWindow,
-            .multipleWindows,
-            .singleApplication,
-            .multipleApplications,
-            .singleDisplay,            
-        ]
-        
-        self.allowedPickingModes = pickerConfig.allowedPickerModes
-    }
-    
-    
-    func updatePickerConfiguration() {
-        self.screenRecorderPicker.maximumStreamCount = maximumStramCount
-        self.screenRecorderPicker.defaultConfiguration = getDefaultPickerConfig()
-    }
-    
-    func getDefaultPickerConfig() -> SCContentSharingPickerConfiguration {
-        var config = SCContentSharingPickerConfiguration()
-        config.allowedPickerModes = allowedPickingModes
-        config.excludedWindowIDs = Array(excludedWindowIDsSelection)
-        config.excludedBundleIDs = excludedBundleIDs
-        config.allowsChangingSelectedContent = allowsRepickign
-        return config
-    }
-    
-    /// - Tag: HandlePicker
-    nonisolated func contentSharingPicker(_ picker: SCContentSharingPicker, didCancelFor stream: SCStream?) {
-            print("Picker canceled for stream \(stream)")
-    }
-
-    nonisolated func contentSharingPicker(_ picker: SCContentSharingPicker, didUpdateWith filter: SCContentFilter, for stream: SCStream?) {
-        Task { @MainActor in
-            print("Picker updated with filter=\(filter) for stream=\(stream)")
-            pickerContentFilter = filter
-            shouldUsePickerFilter = true
-            setPickerUpdate(true)
-            updateEngine()
-        }
-    }
-    
-    func presentPicker() {
-        if let stream = stream {
-            SCContentSharingPicker.shared.present(for: stream)
-        } else {
-            SCContentSharingPicker.shared.present()
-        }
-    }
-
-    nonisolated func contentSharingPickerStartDidFailWithError(_ error: Error) {
-        print("Error starting picker! \(error)")
-    }
-    
-    func setPickerUpdate(_ updated: Bool) {
-        Task { @MainActor in
-            self.pickerUpdate = updated
-            
-        }
-    }
-    
     private let videoSampleBufferQueue = DispatchQueue(label: "com.example.apple-samplecode.VideoSampleBufferQueue")
     private let audioSampleBufferQueue = DispatchQueue(label: "com.example.apple-samplecode.AudioSampleBufferQueue")
     private let micSampleBufferQueue = DispatchQueue(label: "com.example.apple-samplecode.MicSampleBufferQueue")
@@ -177,14 +115,11 @@ final class ScreenCaptureManger:  NSObject, ObservableObject,SCContentSharingPic
             }
         }
     }
+}
+
+//MARK: - start and stop capture functions
+extension ScreenCaptureManger {
     
-    private func updateEngine() {
-        guard isRunning else { return }
-        Task {            
-            await update(configuration: getStreamConfiguration(), filter: getContentFilter())
-            setPickerUpdate(false)
-        }
-    }
     func start()  async {
         // Exit early if already running.
         guard !isRunning || !isPickerActive else { return }
@@ -198,6 +133,31 @@ final class ScreenCaptureManger:  NSObject, ObservableObject,SCContentSharingPic
         }
         .store(in: &subscriptions)
     }
+    
+    func stopCapture() async {
+        do {
+            try await stream?.stopCapture()
+            streamOutput?.getContinuation()?.finish()
+            isRunning = false
+        } catch {
+            streamOutput?.getContinuation()?.finish(throwing: error)
+            isRunning = false
+        }
+//        powerMeter.processSilence()
+    }
+}
+
+
+//MARK: - capture update content funcitons
+extension ScreenCaptureManger {
+    private func updateEngine() {
+        guard isRunning else { return }
+        Task {
+            await update(configuration: getStreamConfiguration(), filter: getContentFilter())
+            setPickerUpdate(false)
+        }
+    }
+    
     
     func refreshAvailableContent() async {
         do {
@@ -238,14 +198,7 @@ final class ScreenCaptureManger:  NSObject, ObservableObject,SCContentSharingPic
         }
     }
     
-    func update(configuration: SCStreamConfiguration, filter: SCContentFilter) async {
-        do {
-            try await stream?.updateConfiguration(configuration)
-            try await stream?.updateContentFilter(filter)
-        } catch {
-            print("Failed to update the stream session: \(String(describing: error))")
-        }
-    }
+  
     
     func startCapture(using config: SCStreamConfiguration,filter: SCContentFilter) -> AsyncThrowingStream<CapturedFrame,Error> {
         
@@ -274,19 +227,20 @@ final class ScreenCaptureManger:  NSObject, ObservableObject,SCContentSharingPic
         }
     }
     
-    func stopCapture() async {
+}
+
+
+//MARK: - screen capture main and filter config funcitons
+extension ScreenCaptureManger {
+    
+    func update(configuration: SCStreamConfiguration, filter: SCContentFilter) async {
         do {
-            try await stream?.stopCapture()
-            streamOutput?.getContinuation()?.finish()
-            isRunning = false
+            try await stream?.updateConfiguration(configuration)
+            try await stream?.updateContentFilter(filter)
         } catch {
-            streamOutput?.getContinuation()?.finish(throwing: error)
-            isRunning = false
+            print("Failed to update the stream session: \(String(describing: error))")
         }
-//        powerMeter.processSilence()
     }
-    
-    
     func getContentFilter() -> SCContentFilter {
         var filter: SCContentFilter
         switch captureType {
@@ -350,5 +304,70 @@ final class ScreenCaptureManger:  NSObject, ObservableObject,SCContentSharingPic
         // Remove this app's window from the list.
             .filter { $0.owningApplication?.bundleIdentifier != Bundle.main.bundleIdentifier }
     }
+}
+
+//MARK: - picker functions
+extension ScreenCaptureManger {
     
+    func initPickerConfiguration() {
+        var pickerConfig = SCContentSharingPickerConfiguration()
+        pickerConfig.allowedPickerModes = [
+            .singleWindow,
+            .multipleWindows,
+            .singleApplication,
+            .multipleApplications,
+            .singleDisplay,
+        ]
+        
+        self.allowedPickingModes = pickerConfig.allowedPickerModes
+    }
+    
+    
+    func updatePickerConfiguration() {
+        self.screenRecorderPicker.maximumStreamCount = maximumStramCount
+        self.screenRecorderPicker.defaultConfiguration = getDefaultPickerConfig()
+    }
+    
+    func getDefaultPickerConfig() -> SCContentSharingPickerConfiguration {
+        var config = SCContentSharingPickerConfiguration()
+        config.allowedPickerModes = allowedPickingModes
+        config.excludedWindowIDs = Array(excludedWindowIDsSelection)
+        config.excludedBundleIDs = excludedBundleIDs
+        config.allowsChangingSelectedContent = allowsRepickign
+        return config
+    }
+    
+    /// - Tag: HandlePicker
+    nonisolated func contentSharingPicker(_ picker: SCContentSharingPicker, didCancelFor stream: SCStream?) {
+            print("Picker canceled for stream \(stream)")
+    }
+
+    nonisolated func contentSharingPicker(_ picker: SCContentSharingPicker, didUpdateWith filter: SCContentFilter, for stream: SCStream?) {
+        Task { @MainActor in
+            print("Picker updated with filter=\(filter) for stream=\(stream)")
+            pickerContentFilter = filter
+            shouldUsePickerFilter = true
+            setPickerUpdate(true)
+            updateEngine()
+        }
+    }
+    
+    func presentPicker() {
+        if let stream = stream {
+            SCContentSharingPicker.shared.present(for: stream)
+        } else {
+            SCContentSharingPicker.shared.present()
+        }
+    }
+
+    nonisolated func contentSharingPickerStartDidFailWithError(_ error: Error) {
+        print("Error starting picker! \(error)")
+    }
+    
+    func setPickerUpdate(_ updated: Bool) {
+        Task { @MainActor in
+            self.pickerUpdate = updated
+            
+        }
+    }
 }
