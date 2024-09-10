@@ -1,9 +1,9 @@
-/*
-See the LICENSE.txt file for this sample’s licensing information.
-
-Abstract:
-A view that provides the UI to configure screen capture.
-*/
+//
+//  ScreenCaptureManger.swift
+//  ScreenCaptureDemo
+//
+//  Created by Ahmed Ragab on 25/08/2024.
+//
 
 import SwiftUI
 import ScreenCaptureKit
@@ -37,6 +37,7 @@ struct ConfigurationView: View {
                             Text("Window")
                                 .tag(CaptureType.window)
                         }
+                        .pickerStyle(.segmented)
                     }
                     
                     VStack(alignment: .leading, spacing: verticalLabelSpacing) {
@@ -159,4 +160,10 @@ struct HeaderView: View {
             .foregroundColor(.secondary)
             .alignmentGuide(.leading) { _ in alignmentOffset }
     }
+}
+
+
+
+#Preview {
+    ConfigurationView(screenRecorder: ScreenCaptureManger(), userStopped: .constant(false))
 }

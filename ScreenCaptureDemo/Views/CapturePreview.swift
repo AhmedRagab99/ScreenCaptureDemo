@@ -1,9 +1,9 @@
-/*
-See the LICENSE.txt file for this sample’s licensing information.
-
-Abstract:
-A view that renders a video frame.
-*/
+//
+//  ScreenCaptureManger.swift
+//  ScreenCaptureDemo
+//
+//  Created by Ahmed Ragab on 25/08/2024.
+//
 
 import SwiftUI
 
