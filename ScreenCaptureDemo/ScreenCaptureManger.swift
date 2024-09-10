@@ -339,7 +339,7 @@ extension ScreenCaptureManger {
     
     /// - Tag: HandlePicker
     nonisolated func contentSharingPicker(_ picker: SCContentSharingPicker, didCancelFor stream: SCStream?) {
-        print("Picker canceled for stream \(stream)")
+        print("Picker canceled for stream \(String(describing: stream))")
         Task { @MainActor in
             await stopCapture()
         }
@@ -347,9 +347,9 @@ extension ScreenCaptureManger {
 
     nonisolated func contentSharingPicker(_ picker: SCContentSharingPicker, didUpdateWith filter: SCContentFilter, for stream: SCStream?) {
         Task { @MainActor in
-            print("Picker updated with filter=\(filter) for stream=\(stream)")
+            print("Picker updated with filter=\(filter) for stream=\(String(describing: stream))")
             pickerContentFilter = filter
-            shouldUsePickerFilter = true            
+            shouldUsePickerFilter = true
             updateEngine()
         }
     }
