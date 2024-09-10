@@ -9,6 +9,7 @@ import Foundation
 import Combine
 import ScreenCaptureKit
 import AVKit
+import SwiftUI
 @MainActor
 final class ScreenCaptureManger:  NSObject, ObservableObject,SCContentSharingPickerObserver {
     @Published var availableWindows = [SCWindow]()
@@ -65,7 +66,6 @@ final class ScreenCaptureManger:  NSObject, ObservableObject,SCContentSharingPic
             updatePickerConfiguration()
         }
     }
-    @Published private(set) var pickerUpdate: Bool = false // Update the running stream immediately with picker selection
     private var pickerContentFilter: SCContentFilter?
     private var shouldUsePickerFilter = false
     
@@ -89,7 +89,7 @@ final class ScreenCaptureManger:  NSObject, ObservableObject,SCContentSharingPic
     private let micSampleBufferQueue = DispatchQueue(label: "com.example.apple-samplecode.MicSampleBufferQueue")
     private(set) var stream: SCStream?
     
-    
+    private var windowIsExcluded = false
     private var scaleFactor: Int { Int(NSScreen.main?.backingScaleFactor ?? 2) }
     @Published var contentSize = CGSize(width: 1, height: 1)
     
@@ -154,7 +154,6 @@ extension ScreenCaptureManger {
         guard isRunning else { return }
         Task {
             await update(configuration: getStreamConfiguration(), filter: getContentFilter())
-            setPickerUpdate(false)
         }
     }
     
@@ -350,9 +349,21 @@ extension ScreenCaptureManger {
         Task { @MainActor in
             print("Picker updated with filter=\(filter) for stream=\(stream)")
             pickerContentFilter = filter
-            shouldUsePickerFilter = true
-            setPickerUpdate(true)
+            shouldUsePickerFilter = true            
             updateEngine()
+        }
+    }
+    
+    
+    func updatePickingModesFor(_ mode: SCContentSharingPickerMode) -> Binding<Bool> {
+        Binding {
+            self.allowedPickingModes.contains(mode)
+        } set: { isOn in
+            if isOn {
+                self.allowedPickingModes.insert(mode)
+            } else {
+                self.allowedPickingModes.remove(mode)
+            }
         }
     }
     
@@ -368,10 +379,4 @@ extension ScreenCaptureManger {
         print("Error starting picker! \(error)")
     }
     
-    func setPickerUpdate(_ updated: Bool) {
-        Task { @MainActor in
-            self.pickerUpdate = updated
-            
-        }
-    }
 }

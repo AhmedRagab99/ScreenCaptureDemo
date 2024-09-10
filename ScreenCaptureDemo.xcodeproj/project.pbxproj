@@ -13,6 +13,9 @@
 		D056FFD12C8E447E00EEC48E /* PickerSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D056FFCC2C8E447E00EEC48E /* PickerSettingsView.swift */; };
 		D0A60F262C7B8A710038204A /* ScreenCaptureManger.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0A60F252C7B8A710038204A /* ScreenCaptureManger.swift */; };
 		D0CE33792C90BC4A00FEB6CF /* CaptureStreamOutputEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0CE33782C90BC4A00FEB6CF /* CaptureStreamOutputEngine.swift */; };
+		D0CE337B2C90BFBD00FEB6CF /* PickerContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0CE337A2C90BFBD00FEB6CF /* PickerContentView.swift */; };
+		D0CE337D2C90C1B700FEB6CF /* BundleIDsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0CE337C2C90C1B700FEB6CF /* BundleIDsListView.swift */; };
+		D0CE337F2C90C1F100FEB6CF /* HeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0CE337E2C90C1F100FEB6CF /* HeaderView.swift */; };
 		D0FC23902C7B6665007B267A /* ScreenCaptureDemoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0FC238F2C7B6665007B267A /* ScreenCaptureDemoApp.swift */; };
 		D0FC23922C7B6665007B267A /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0FC23912C7B6665007B267A /* ContentView.swift */; };
 		D0FC23942C7B6666007B267A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D0FC23932C7B6666007B267A /* Assets.xcassets */; };
@@ -26,6 +29,9 @@
 		D056FFCC2C8E447E00EEC48E /* PickerSettingsView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PickerSettingsView.swift; sourceTree = "<group>"; };
 		D0A60F252C7B8A710038204A /* ScreenCaptureManger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCaptureManger.swift; sourceTree = "<group>"; };
 		D0CE33782C90BC4A00FEB6CF /* CaptureStreamOutputEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureStreamOutputEngine.swift; sourceTree = "<group>"; };
+		D0CE337A2C90BFBD00FEB6CF /* PickerContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerContentView.swift; sourceTree = "<group>"; };
+		D0CE337C2C90C1B700FEB6CF /* BundleIDsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BundleIDsListView.swift; sourceTree = "<group>"; };
+		D0CE337E2C90C1F100FEB6CF /* HeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeaderView.swift; sourceTree = "<group>"; };
 		D0FC238C2C7B6665007B267A /* ScreenCaptureDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ScreenCaptureDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D0FC238F2C7B6665007B267A /* ScreenCaptureDemoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCaptureDemoApp.swift; sourceTree = "<group>"; };
 		D0FC23912C7B6665007B267A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -52,6 +58,9 @@
 				D056FFCA2C8E447E00EEC48E /* ConfigurationView.swift */,
 				D056FFCB2C8E447E00EEC48E /* MaterialView.swift */,
 				D056FFCC2C8E447E00EEC48E /* PickerSettingsView.swift */,
+				D0CE337A2C90BFBD00FEB6CF /* PickerContentView.swift */,
+				D0CE337C2C90C1B700FEB6CF /* BundleIDsListView.swift */,
+				D0CE337E2C90C1F100FEB6CF /* HeaderView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -167,9 +176,12 @@
 			files = (
 				D056FFCF2C8E447E00EEC48E /* ConfigurationView.swift in Sources */,
 				D0CE33792C90BC4A00FEB6CF /* CaptureStreamOutputEngine.swift in Sources */,
+				D0CE337B2C90BFBD00FEB6CF /* PickerContentView.swift in Sources */,
+				D0CE337D2C90C1B700FEB6CF /* BundleIDsListView.swift in Sources */,
 				D0A60F262C7B8A710038204A /* ScreenCaptureManger.swift in Sources */,
 				D0FC23922C7B6665007B267A /* ContentView.swift in Sources */,
 				D056FFCE2C8E447E00EEC48E /* CapturePreview.swift in Sources */,
+				D0CE337F2C90C1F100FEB6CF /* HeaderView.swift in Sources */,
 				D056FFD12C8E447E00EEC48E /* PickerSettingsView.swift in Sources */,
 				D056FFD02C8E447E00EEC48E /* MaterialView.swift in Sources */,
 				D0FC23902C7B6665007B267A /* ScreenCaptureDemoApp.swift in Sources */,

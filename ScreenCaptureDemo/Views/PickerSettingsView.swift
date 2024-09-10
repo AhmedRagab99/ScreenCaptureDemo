@@ -8,37 +8,15 @@ A view for content picker configuration.
 import SwiftUI
 import ScreenCaptureKit
 
-struct PickerSettingsView: View {
-
+struct PickerSettingsView {
     private let verticalLabelSpacing: CGFloat = 8
-
     @Environment(\.presentationMode) var presentation
     @ObservedObject var screenRecorder: ScreenCaptureManger
     @State private var bundleIDToExclude = ""
     @State private var maxStreamCount = 3
+}
 
-    func addBundleID() {
-        guard !bundleIDToExclude.isEmpty else { return }
-        screenRecorder.excludedBundleIDs.insert(bundleIDToExclude, at: 0)
-        bundleIDToExclude = ""
-    }
-
-    func clearBundleIDs() {
-        screenRecorder.excludedBundleIDs = []
-    }
-
-    private func bindingForPickingModes(_ mode: SCContentSharingPickerMode) -> Binding<Bool> {
-        Binding {
-            screenRecorder.allowedPickingModes.contains(mode)
-        } set: { isOn in
-            if isOn {
-                screenRecorder.allowedPickingModes.insert(mode)
-            } else {
-                screenRecorder.allowedPickingModes.remove(mode)
-            }
-        }
-    }
-
+extension PickerSettingsView: View {
     var body: some View {
         Group {
             VStack(alignment: .leading, spacing: verticalLabelSpacing) {
@@ -53,11 +31,11 @@ struct PickerSettingsView: View {
 
                 // Picker configuration: Allowed picking modes.
                 HeaderView("Allowed Picking Modes")
-                Toggle("Single Window", isOn: bindingForPickingModes(.singleWindow))
-                Toggle("Multiple Windows", isOn: bindingForPickingModes(.multipleWindows))
-                Toggle("Single Application", isOn: bindingForPickingModes(.singleApplication))
-                Toggle("Multiple Applications", isOn: bindingForPickingModes(.multipleApplications))
-                Toggle("Single Display", isOn: bindingForPickingModes(.singleDisplay))
+                Toggle("Single Window", isOn: screenRecorder.updatePickingModesFor(.singleWindow))
+                Toggle("Multiple Windows", isOn: screenRecorder.updatePickingModesFor(.multipleWindows))
+                Toggle("Single Application", isOn: screenRecorder.updatePickingModesFor(.singleApplication))
+                Toggle("Multiple Applications", isOn: screenRecorder.updatePickingModesFor(.multipleApplications))
+                Toggle("Single Display", isOn: screenRecorder.updatePickingModesFor(.singleDisplay))
 
                 // Picker configuration: Excluded Window IDs.
                 HeaderView("Excluded Window IDs")
@@ -87,15 +65,7 @@ struct PickerSettingsView: View {
                     }
                 }
 
-                // Picker configuration: Excluded Bundle IDs.
-                HeaderView("Excluded Bundle IDs")
-                HStack {
-                    TextField("\(Bundle.main.bundleIdentifier!)", text: $bundleIDToExclude)
-                        .frame(maxWidth: 300)
-                        .onSubmit {
-                            addBundleID()
-                        }
-                }
+              
                 if !screenRecorder.excludedBundleIDs.isEmpty {
                     ScrollView {
                         BundleIDsListView(screenRecorder: screenRecorder)
@@ -103,16 +73,9 @@ struct PickerSettingsView: View {
                     .frame(maxWidth: 300, maxHeight: 50)
                     .background(MaterialView())
                     .clipShape(.rect(cornerSize: CGSize(width: 1, height: 1)))
-                    Button("Clear All Bundle IDs") {
-                        clearBundleIDs()
-                    }
                 }
-
-                // Picker configuration: Allows Repicking.
-                Toggle("Allows Repicking", isOn: $screenRecorder.allowsRepickign)
-                    .toggleStyle(.switch)
             }
-            // Dismiss the PickerSettingsView.
+            
             HStack {
                 Button {
                     presentation.wrappedValue.dismiss()
@@ -122,30 +85,5 @@ struct PickerSettingsView: View {
             }
         }
         .padding()
-    }
-}
-
-struct BundleIDsListView: View {
-    @ObservedObject var screenRecorder: ScreenCaptureManger
-
-    var body: some View {
-        Section {
-            ForEach(Array(screenRecorder.excludedBundleIDs.enumerated()), id: \.element) { index, element in
-                HStack {
-                    Text("\(element)")
-                        .padding(.leading, 5)
-                        .foregroundColor(.gray)
-                    Spacer()
-                    Button {
-                        screenRecorder.excludedBundleIDs.remove(at: index)
-                    } label: {
-                        Image(systemName: "xmark.circle")
-                    }
-                    .padding(.trailing, 10)
-                    .foregroundStyle(.secondary)
-                    .buttonStyle(.plain)
-                }
-            }
-        }
     }
 }
